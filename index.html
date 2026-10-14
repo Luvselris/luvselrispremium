@@ -9,9 +9,8 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Mitr:wght@300;400;500;600&family=Quicksand:wght@500;600;700&display=swap" rel="stylesheet">
 
-  <!-- Firebase SDK -->
+  <!-- Firebase SDK (ใช้เฉพาะ Firestore ตัด Auth ที่ติดปัญหาออก) -->
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
   <!-- ตัวอ่าน QR Code สำหรับสลิปโอนเงิน -->
   <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
@@ -296,7 +295,7 @@
       padding: 0 10px;
     }
 
-    /* ปุ่ม LINE ปรับโทนชมพูพาสเทลเหลือบฟ้าตามธีมเว็บ */
+    /* ปุ่ม LINE โทนชมพูพาสเทลเหลือบฟ้าตามธีมเว็บ */
     .line-oa-btn {
       display: flex;
       align-items: center;
@@ -575,10 +574,10 @@
         <div class="art-text-box">⠀ ּ⠀ ⠀⠀ཾ⠀ ⠀ ⠀⠀ ⠀𓈒.
    ゙♡༷ׄ🎹       ּ    จำนวนเงินแอพ bat݂h݁
    ⠀ ݁⠀ ⠀⠀ ༷⠀⠀ ⠀ ⠀⠀ּ
-w݂alle݁t𓈒  ּ           𓈒
+w݂alle݁t𓈒  ּ           𓈒
        0951725352
     ּ   1581132944
-k-plus𓈒   ཾ     ݂     𓈒
+k-plus𓈒   ཾ     ݂     𓈒
            ݁       ݂sent݂ pro݁of ּ
     ༚ּᥬᩤ♡ཾ༷         ݁   sּlip 𓈒. !</div>
 
@@ -596,9 +595,9 @@ k-plus𓈒   ཾ     ݂     𓈒
         <div class="art-text-box" style="margin-top:12px;">༚ּᥬᩤ♡ཾ༷            n݂ote slip݁
          𓈒ซื้อขายกับ line @861pblyp
 ⠀༷ ⠀ ⠀⠀ ⠀⠀ ⠀ ⠀⠀ ⠀𓈒.
-𓈒   ݂   ཾ    𓈒หาּกลืมโน๊݂ต ݁
+𓈒   ݂   ཾ    𓈒หาּกลืมโน๊݂ต ݁
 โอ݁นใ݂หม่ 0.01 
-       ֺ #  𓈒พ݂ร้อม݁โนּ๊ตส݂ลิปּ
+       ֺ #  𓈒พ݂ร้อม݁โนּ๊ตส݂ลิปּ
 ⠀ ⠀ ݁⠀⠀ ⠀⠀ ⠀ ⠀⠀ ⠀݂
 ลูกּค้าเก่า݂݁⠀  ⠀  𓈒ִ֯♡🎹𓂂
 ไม่ต้݂องโน๊ตน݁ะคะּ</div>
@@ -674,7 +673,6 @@ k-plus𓈒   ཾ     ݂     𓈒
 
     if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
-    const auth = firebase.auth();
 
     const DB_SITE = "luvselris_site";
     const DB_APPS = "luvselris_apps";
@@ -687,6 +685,7 @@ k-plus𓈒   ཾ     ݂     𓈒
     let appsDataList = [];
     let activeAppModalData = null;
     let selectedPlanIndex = -1;
+    let userUnsub = null;
 
     // ระบบเพลง
     const music = document.getElementById('bgMusic');
@@ -706,7 +705,7 @@ k-plus𓈒   ཾ     ݂     𓈒
       document.getElementById('drawerOverlay').classList.toggle('open', open);
     }
 
-    // ฟังก์ชันสลับแท็บ (ซิงค์ทั้งจากแถบข้างบน และเมนูสามขีด)
+    // ฟังก์ชันสลับแท็บ
     function switchNavTab(tabName) {
       document.querySelectorAll('.tab-view').forEach(el => el.classList.remove('active'));
       document.querySelectorAll('.nav-pill-btn').forEach(b => b.classList.remove('active'));
@@ -723,58 +722,117 @@ k-plus𓈒   ཾ     ݂     𓈒
       toggleDrawer(false);
     }
 
-    // จัดการ Auth ผู้ใช้
-    auth.onAuthStateChanged(async user => {
+    // ระบบ User State จัดการตรงผ่าน Firestore (ไม่ต้องง้อ Firebase Auth)
+    function checkStoredUser() {
+      const savedUserStr = localStorage.getItem('luvselris_active_user');
+      if (savedUserStr) {
+        try {
+          const userObj = JSON.parse(savedUserStr);
+          onUserLoggedIn(userObj);
+        } catch (e) {
+          onUserLoggedOut();
+        }
+      } else {
+        onUserLoggedOut();
+      }
+    }
+
+    function onUserLoggedIn(user) {
       currentUser = user;
       const drawerEmail = document.getElementById('drawerUserEmail');
-      const drawerBalance = document.getElementById('drawerUserBalance');
       const authBtn = document.getElementById('drawerAuthBtn');
 
-      if (user) {
-        drawerEmail.textContent = user.email;
-        authBtn.textContent = '🚪 ออกจากระบบ';
-        authBtn.onclick = () => auth.signOut();
+      drawerEmail.textContent = user.email;
+      authBtn.textContent = '🚪 ออกจากระบบ';
+      authBtn.onclick = logoutUser;
 
-        db.collection(DB_USERS).doc(user.uid).onSnapshot(doc => {
-          if (doc.exists) {
-            userData = doc.data();
-            drawerBalance.textContent = `฿${(userData.balance || 0).toFixed(2)}`;
-          } else {
-            db.collection(DB_USERS).doc(user.uid).set({ email: user.email, balance: 0 });
-          }
-        });
-        loadOrderHistory(user.uid);
-      } else {
-        drawerEmail.textContent = 'ยังไม่ได้เข้าสู่ระบบ';
-        drawerBalance.textContent = '฿0.00';
-        authBtn.textContent = '🔑 เข้าสู่ระบบ / สมัคร';
-        authBtn.onclick = openAuthModal;
-        document.getElementById('orderHistoryList').innerHTML = '<p style="text-align:center; color:var(--text-muted); font-size:13px; padding:20px;">กรุณาเข้าสู่ระบบก่อนสั่งซื้อนะคะ ♡</p>';
-      }
-    });
+      if (userUnsub) userUnsub();
+      userUnsub = db.collection(DB_USERS).doc(user.docId).onSnapshot(doc => {
+        if (doc.exists) {
+          userData = doc.data();
+          document.getElementById('drawerUserBalance').textContent = `฿${(userData.balance || 0).toFixed(2)}`;
+        }
+      });
+      loadOrderHistory(user.email);
+    }
+
+    function onUserLoggedOut() {
+      currentUser = null;
+      userData = { balance: 0 };
+      if (userUnsub) userUnsub();
+      document.getElementById('drawerUserEmail').textContent = 'ยังไม่ได้เข้าสู่ระบบ';
+      document.getElementById('drawerUserBalance').textContent = '฿0.00';
+      const authBtn = document.getElementById('drawerAuthBtn');
+      authBtn.textContent = '🔑 เข้าสู่ระบบ / สมัคร';
+      authBtn.onclick = openAuthModal;
+      document.getElementById('orderHistoryList').innerHTML = '<p style="text-align:center; color:var(--text-muted); font-size:13px; padding:20px;">กรุณาเข้าสู่ระบบก่อนสั่งซื้อนะคะ ♡</p>';
+    }
+
+    function logoutUser() {
+      localStorage.removeItem('luvselris_active_user');
+      onUserLoggedOut();
+      toggleDrawer(false);
+      alert('ออกจากระบบเรียบร้อยแล้วค่ะ');
+    }
 
     function openAuthModal() { document.getElementById('authModal').classList.add('open'); toggleDrawer(false); }
     function closeAuthModal() { document.getElementById('authModal').classList.remove('open'); }
 
+    // สมัคร / เข้าสู่ระบบด้วย Firestore (ไม่มี error configuration-not-found 100%)
     async function handleAuthSubmit(isRegister) {
-      const email = document.getElementById('authEmail').value.trim();
+      const email = document.getElementById('authEmail').value.trim().toLowerCase();
       const pass = document.getElementById('authPassword').value.trim();
-      if (!email || !pass) return alert('กรุณากรอกอีเมลและรหัสผ่าน');
+
+      if (!email || !pass) return alert('กรุณากรอกอีเมลและรหัสผ่านให้ครบถ้วนนะคะ ♡');
+      if (pass.length < 4) return alert('รหัสผ่านต้องมีอย่างน้อย 4 ตัวอักษรขึ้นไปค่ะ');
+
+      // ใช้อีเมลเป็น Doc ID ป้องกันการสมัครซ้ำ
+      const userDocRef = db.collection(DB_USERS).doc(email);
 
       try {
+        const docSnap = await userDocRef.get();
+
         if (isRegister) {
-          const cred = await auth.createUserWithEmailAndPassword(email, pass);
-          await db.collection(DB_USERS).doc(cred.user.uid).set({ email, balance: 0, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
-          alert('สมัครสมาชิกเรียบร้อยแล้วค่ะ ♡');
+          if (docSnap.exists) {
+            alert('อีเมลนี้เคยสมัครสมาชิกแล้วค่ะ กรุณากดปุ่ม "เข้าสู่ระบบ" แทนนะคะ');
+            return;
+          }
+          await userDocRef.set({
+            email: email,
+            password: pass,
+            balance: 0,
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+          });
+
+          const userObj = { email: email, docId: email };
+          localStorage.setItem('luvselris_active_user', JSON.stringify(userObj));
+          onUserLoggedIn(userObj);
+          alert('สมัครสมาชิกเรียบร้อยแล้วค่ะ ยินดีต้อนรับนะคะ ♡');
+          closeAuthModal();
         } else {
-          await auth.signInWithEmailAndPassword(email, pass);
+          if (!docSnap.exists) {
+            alert('ไม่พบอีเมลนี้ในระบบ กรุณากดปุ่ม "สมัครสมาชิกใหม่" ก่อนนะคะ');
+            return;
+          }
+          const d = docSnap.data();
+          if (d.password !== pass) {
+            alert('รหัสผ่านไม่ถูกต้อง กรุณาลองใหม่อีกครั้งค่ะ');
+            return;
+          }
+
+          const userObj = { email: email, docId: email };
+          localStorage.setItem('luvselris_active_user', JSON.stringify(userObj));
+          onUserLoggedIn(userObj);
           alert('เข้าสู่ระบบสำเร็จแล้วค่ะ ♡');
+          closeAuthModal();
         }
-        closeAuthModal();
       } catch (err) {
-        alert(err.message);
+        alert('เกิดข้อผิดพลาด: ' + err.message);
       }
     }
+
+    // เริ่มตรวจสอบสถานะผู้ใช้งาน
+    checkStoredUser();
 
     // ดึงข้อมูลร้าน
     db.collection(DB_SITE).doc("config").onSnapshot(doc => {
@@ -856,7 +914,7 @@ k-plus𓈒   ཾ     ݂     𓈒
       const plan = app.plans[selectedPlanIndex];
 
       if ((userData.balance || 0) < plan.price) {
-        alert(`ยอดเงินคงเหลือไม่พอค่ะ (ต้องการ ฿${plan.price} ขาดอีก ฿${plan.price - userData.balance})\nกรุณาไปที่แท็บ payment ก่อนนะคะ ♡`);
+        alert(`ยอดเงินคงเหลือไม่พอค่ะ (ต้องการ ฿${plan.price} ขาดอีก ฿${(plan.price - (userData.balance || 0)).toFixed(2)})\nกรุณาไปที่แท็บ payment ก่อนนะคะ ♡`);
         switchNavTab('topup');
         closeAppModal();
         return;
@@ -872,7 +930,7 @@ k-plus𓈒   ཾ     ݂     𓈒
       btn.textContent = 'กำลังทำรายการ...';
 
       const appDocRef = db.collection(DB_APPS).doc(app.id);
-      const userDocRef = db.collection(DB_USERS).doc(currentUser.uid);
+      const userDocRef = db.collection(DB_USERS).doc(currentUser.docId);
 
       try {
         await db.runTransaction(async t => {
@@ -893,7 +951,7 @@ k-plus𓈒   ཾ     ݂     𓈒
 
           const newOrderRef = db.collection(DB_ORDERS).doc();
           t.set(newOrderRef, {
-            userId: currentUser.uid,
+            userEmail: currentUser.email,
             appName: app.name,
             planName: targetPlan.name,
             price: targetPlan.price,
@@ -914,8 +972,8 @@ k-plus𓈒   ཾ     ݂     𓈒
     }
 
     // โหลดประวัติสั่งซื้อ
-    function loadOrderHistory(uid) {
-      db.collection(DB_ORDERS).where("userId", "==", uid).orderBy("createdAt", "desc").onSnapshot(snap => {
+    function loadOrderHistory(email) {
+      db.collection(DB_ORDERS).where("userEmail", "==", email).orderBy("createdAt", "desc").onSnapshot(snap => {
         const box = document.getElementById('orderHistoryList');
         if (snap.empty) {
           box.innerHTML = '<p style="text-align:center; color:var(--text-muted); font-size:13px; padding:20px;">ยังไม่มีประวัติการสั่งซื้อ อุดหนุนกันก่อนน้าา ♡</p>';
@@ -993,13 +1051,13 @@ k-plus𓈒   ཾ     ݂     𓈒
 
           try {
             await db.runTransaction(async t => {
-              const uRef = db.collection(DB_USERS).doc(currentUser.uid);
+              const uRef = db.collection(DB_USERS).doc(currentUser.docId);
               const uDoc = await t.get(uRef);
               const curBal = (uDoc.data() && uDoc.data().balance) || 0;
 
               t.update(uRef, { balance: curBal + amount });
               t.set(db.collection(DB_SLIPS).doc(slipRefStr), {
-                userId: currentUser.uid,
+                userEmail: currentUser.email,
                 amount: amount,
                 usedAt: firebase.firestore.FieldValue.serverTimestamp()
               });
