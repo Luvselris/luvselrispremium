@@ -45,7 +45,7 @@
       color: var(--text-dark);
       display: flex;
       justify-content: center;
-      padding: 18px 12px 80px;
+      padding: 16px 12px 80px;
       position: relative;
       background: radial-gradient(circle at top left, #e0f2fe 0%, #fdf2f8 35%, #fef9c3 70%, #ede9fe 100%);
       overflow-x: hidden;
@@ -58,42 +58,69 @@
       z-index: 2;
     }
 
-    /* แถบหัวเว็บด้านบน พร้อมปุ่มสามขีดและเพลง */
+    /* กล่องแถบด้านบน: รวมปุ่มสามขีด แถบแท็บ 4 อัน และปุ่มเพลง */
     .top-header {
       display: flex;
       align-items: center;
-      justify-content: space-between;
+      gap: 6px;
       background: var(--card-bg);
       border: 1.5px solid var(--border-soft);
-      border-radius: 26px;
-      padding: 8px 14px;
+      border-radius: 30px;
+      padding: 5px 8px;
       margin-bottom: 14px;
       box-shadow: var(--glow);
-      backdrop-filter: blur(10px);
+      backdrop-filter: blur(12px);
     }
 
     .menu-trigger-btn, .music-trigger-btn {
-      width: 38px;
-      height: 38px;
+      width: 36px;
+      height: 36px;
+      flex-shrink: 0;
       border-radius: 50%;
       border: 1.5px solid var(--border-soft);
       background: #ffffff;
       color: var(--deep-pink);
-      font-size: 18px;
+      font-size: 16px;
       display: flex;
       align-items: center;
       justify-content: center;
       cursor: pointer;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.04);
       transition: transform 0.15s;
     }
     .menu-trigger-btn:active, .music-trigger-btn:active { transform: scale(0.92); }
 
-    .brand-title {
-      font-size: 15.5px;
-      font-weight: 700;
+    /* แถบแท็บตรงกลางกล่อง */
+    .header-nav-scroll {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      flex: 1;
+      overflow-x: auto;
+      scrollbar-width: none;
+      padding: 2px 0;
+    }
+    .header-nav-scroll::-webkit-scrollbar { display: none; }
+
+    .nav-pill-btn {
+      flex-shrink: 0;
+      border: none;
+      background: transparent;
+      color: var(--text-muted);
+      font-size: 12px;
+      font-weight: 600;
+      padding: 7px 11px;
+      border-radius: 20px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      white-space: nowrap;
+    }
+    .nav-pill-btn.active {
+      background: #ffffff;
       color: var(--deep-pink);
-      letter-spacing: 0.3px;
+      box-shadow: 0 2px 8px rgba(244, 114, 182, 0.22);
+      border: 1px solid var(--border-soft);
+      font-weight: 700;
     }
 
     /* เมนูเลื่อนด้านข้าง (Side Drawer) */
@@ -268,12 +295,14 @@
       text-align: center;
       padding: 0 10px;
     }
+
+    /* ปุ่ม LINE ปรับโทนชมพูพาสเทลเหลือบฟ้าตามธีมเว็บ */
     .line-oa-btn {
       display: flex;
       align-items: center;
       justify-content: center;
       gap: 8px;
-      background: linear-gradient(135deg, #06c755, #00b900);
+      background: linear-gradient(135deg, var(--pastel-pink) 0%, var(--deep-pink) 50%, var(--deep-blue) 100%);
       color: #ffffff;
       text-decoration: none;
       padding: 14px;
@@ -281,7 +310,12 @@
       font-size: 14px;
       font-weight: 700;
       margin-top: 16px;
-      box-shadow: 0 6px 18px rgba(6, 199, 85, 0.25);
+      box-shadow: 0 6px 18px rgba(244, 114, 182, 0.32);
+      border: 1.5px solid rgba(255, 255, 255, 0.8);
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .line-oa-btn:active {
+      transform: scale(0.97);
     }
 
     /* หน้า 2: ตารางกล่องแอพพรีเมียม (บรรทัดละ 2 กล่อง) */
@@ -474,24 +508,31 @@
     </div>
 
     <div class="drawer-nav-list">
-      <button type="button" class="drawer-nav-btn active" onclick="switchNavTab('profile')">🏠 โปรไฟล์ร้าน</button>
-      <button type="button" class="drawer-nav-btn" onclick="switchNavTab('apps')">📱 เลือกแอพพรีเมี่ยม</button>
-      <button type="button" class="drawer-nav-btn" onclick="switchNavTab('topup')">💸 เติมเงินเข้าระบบ</button>
-      <button type="button" class="drawer-nav-btn" onclick="switchNavTab('history')">📜 ประวัติการสั่งซื้อ</button>
+      <button type="button" class="drawer-nav-btn active" id="drawer-btn-profile" onclick="switchNavTab('profile')">🏠 home (โปรไฟล์ร้าน)</button>
+      <button type="button" class="drawer-nav-btn" id="drawer-btn-apps" onclick="switchNavTab('apps')">📱 apppremium</button>
+      <button type="button" class="drawer-nav-btn" id="drawer-btn-topup" onclick="switchNavTab('topup')">💸 payment (เติมเงิน)</button>
+      <button type="button" class="drawer-nav-btn" id="drawer-btn-history" onclick="switchNavTab('history')">📜 ประวัติการสั่งซื้อ</button>
       <button type="button" class="drawer-nav-btn" id="drawerAuthBtn" onclick="openAuthModal()">🔑 เข้าสู่ระบบ / สมัคร</button>
     </div>
   </div>
 
   <div class="container">
     
-    <!-- Top Header Bar -->
+    <!-- Top Header Bar: กล่องรวมสามขีด + แถบแท็บทั้ง 4 + เพลง -->
     <div class="top-header">
       <button type="button" class="menu-trigger-btn" onclick="toggleDrawer(true)">☰</button>
-      <span class="brand-title">luvselrispremium ♡</span>
+      
+      <div class="header-nav-scroll">
+        <button type="button" class="nav-pill-btn active" id="nav-btn-profile" onclick="switchNavTab('profile')">home</button>
+        <button type="button" class="nav-pill-btn" id="nav-btn-apps" onclick="switchNavTab('apps')">apppremium</button>
+        <button type="button" class="nav-pill-btn" id="nav-btn-topup" onclick="switchNavTab('topup')">payment</button>
+        <button type="button" class="nav-pill-btn" id="nav-btn-history" onclick="switchNavTab('history')">ประวัติการสั่งซื้อ</button>
+      </div>
+
       <button type="button" class="music-trigger-btn" onclick="toggleMusic()">🎵</button>
     </div>
 
-    <!-- 1. แท็บโปรไฟล์ร้าน -->
+    <!-- 1. แท็บ home (โปรไฟล์ร้าน) -->
     <div class="tab-view active" id="tab-profile">
       <div class="glass-card">
         <div class="banner-wrap">
@@ -511,7 +552,7 @@
       </div>
     </div>
 
-    <!-- 2. แท็บเลือกแอพ (Grid 2 กล่องต่อบรรทัด) -->
+    <!-- 2. แท็บ apppremium (Grid 2 กล่องต่อบรรทัด) -->
     <div class="tab-view" id="tab-apps">
       <div class="glass-card" style="padding-bottom:20px;">
         <h2 style="font-size:16px; font-weight:700; color:var(--deep-pink); text-align:center; margin-bottom:14px;">
@@ -523,7 +564,7 @@
       </div>
     </div>
 
-    <!-- 3. แท็บเติมเงิน -->
+    <!-- 3. แท็บ payment (เติมเงิน) -->
     <div class="tab-view" id="tab-topup">
       <div class="glass-card">
         <h2 style="font-size:16px; font-weight:700; color:var(--deep-pink); text-align:center; margin-bottom:12px;">
@@ -578,7 +619,7 @@ k-plus𓈒   ཾ     ݂     𓈒
       </div>
     </div>
 
-    <!-- 4. แท็บประวัติสั่งซื้อ -->
+    <!-- 4. แท็บประวัติการสั่งซื้อ -->
     <div class="tab-view" id="tab-history">
       <div class="glass-card">
         <h2 style="font-size:16px; font-weight:700; color:var(--deep-pink); text-align:center; margin-bottom:14px;">
@@ -622,7 +663,6 @@ k-plus𓈒   ཾ     ݂     𓈒
   <canvas id="qrCanvas" style="display:none;"></canvas>
 
   <script>
-    // ฐานข้อมูล Firebase
     const firebaseConfig = {
       apiKey: "AIzaSyCpAGDSy1NRgmLV_g7qJrCpwOhU9MrfQyY",
       authDomain: "benefitie.firebaseapp.com",
@@ -660,18 +700,26 @@ k-plus𓈒   ཾ     ݂     𓈒
       }, { once: true });
     });
 
-    // เมนูสามขีด & สลับแท็บ
+    // เมนูสามขีด
     function toggleDrawer(open) {
       document.getElementById('sideDrawer').classList.toggle('open', open);
       document.getElementById('drawerOverlay').classList.toggle('open', open);
     }
 
+    // ฟังก์ชันสลับแท็บ (ซิงค์ทั้งจากแถบข้างบน และเมนูสามขีด)
     function switchNavTab(tabName) {
       document.querySelectorAll('.tab-view').forEach(el => el.classList.remove('active'));
+      document.querySelectorAll('.nav-pill-btn').forEach(b => b.classList.remove('active'));
       document.querySelectorAll('.drawer-nav-btn').forEach(b => b.classList.remove('active'));
       
-      const target = document.getElementById(`tab-${tabName}`);
-      if (target) target.classList.add('active');
+      const targetView = document.getElementById(`tab-${tabName}`);
+      const targetPill = document.getElementById(`nav-btn-${tabName}`);
+      const targetDrawer = document.getElementById(`drawer-btn-${tabName}`);
+
+      if (targetView) targetView.classList.add('active');
+      if (targetPill) targetPill.classList.add('active');
+      if (targetDrawer) targetDrawer.classList.add('active');
+
       toggleDrawer(false);
     }
 
@@ -687,7 +735,6 @@ k-plus𓈒   ཾ     ݂     𓈒
         authBtn.textContent = '🚪 ออกจากระบบ';
         authBtn.onclick = () => auth.signOut();
 
-        // ติดตามยอดเงิน
         db.collection(DB_USERS).doc(user.uid).onSnapshot(doc => {
           if (doc.exists) {
             userData = doc.data();
@@ -796,7 +843,7 @@ k-plus𓈒   ཾ     ݂     𓈒
     }
     function closeAppModal() { document.getElementById('appDetailModal').classList.remove('open'); }
 
-    // สั่งซื้อแอพ (ระบบตัดสต็อกและเงินแบบปลอดภัย)
+    // สั่งซื้อแอพ
     async function buySelectedPlan() {
       if (!currentUser) {
         alert('กรุณาเข้าสู่ระบบก่อนสั่งซื้อนะคะ ♡');
@@ -809,7 +856,7 @@ k-plus𓈒   ཾ     ݂     𓈒
       const plan = app.plans[selectedPlanIndex];
 
       if ((userData.balance || 0) < plan.price) {
-        alert(`ยอดเงินคงเหลือไม่พอค่ะ (ต้องการ ฿${plan.price} ขาดอีก ฿${plan.price - userData.balance})\nกรุณาไปที่แท็บเติมเงินก่อนนะคะ ♡`);
+        alert(`ยอดเงินคงเหลือไม่พอค่ะ (ต้องการ ฿${plan.price} ขาดอีก ฿${plan.price - userData.balance})\nกรุณาไปที่แท็บ payment ก่อนนะคะ ♡`);
         switchNavTab('topup');
         closeAppModal();
         return;
@@ -839,15 +886,11 @@ k-plus𓈒   ཾ     ݂     𓈒
           if (curBal < targetPlan.price) throw new Error("ยอดเงินไม่เพียงพอ");
           if (!targetPlan.stock || targetPlan.stock.length === 0) throw new Error("สินค้าหมดสต็อก");
 
-          // ดึงรหัสตัวแรกออก
           const deliveredCode = targetPlan.stock.shift();
 
-          // หักเงิน
           t.update(userDocRef, { balance: curBal - targetPlan.price });
-          // อัปเดตสต็อกที่เหลือ
           t.update(appDocRef, { plans: curPlans });
 
-          // บันทึกคำสั่งซื้อ
           const newOrderRef = db.collection(DB_ORDERS).doc();
           t.set(newOrderRef, {
             userId: currentUser.uid,
@@ -870,7 +913,7 @@ k-plus𓈒   ཾ     ݂     𓈒
       }
     }
 
-    // ประวัติการสั่งซื้อ
+    // โหลดประวัติสั่งซื้อ
     function loadOrderHistory(uid) {
       db.collection(DB_ORDERS).where("userId", "==", uid).orderBy("createdAt", "desc").onSnapshot(snap => {
         const box = document.getElementById('orderHistoryList');
@@ -896,7 +939,7 @@ k-plus𓈒   ཾ     ݂     𓈒
       });
     }
 
-    // ระบบสแกนสลิปตรวจอัตโนมัติ
+    // ตรวจสลิปอัตโนมัติ
     async function handleSlipUpload(event) {
       if (!currentUser) {
         alert('กรุณาเข้าสู่ระบบก่อนแนบสลิปเติมเงินนะคะ ♡');
@@ -918,7 +961,6 @@ k-plus𓈒   ཾ     ݂     𓈒
           ctx.drawImage(img, 0, 0, img.width, img.height);
           const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
 
-          // ถอดรหัส QR ด้วย jsQR
           const code = jsQR(imageData.data, imageData.width, imageData.height);
           if (!code || !code.data) {
             alert('ไม่พบ QR Code ในสลิป กรุณาใช้สลิปที่มี QR Code ชัดเจนนะคะ');
@@ -926,7 +968,6 @@ k-plus𓈒   ཾ     ݂     𓈒
           }
 
           const qrPayload = code.data;
-          // ป้องกันสลิปซ้ำผ่าน Hash / Payload ในฐานข้อมูล
           const slipRefStr = btoa(qrPayload).slice(0, 32);
 
           const slipDoc = await db.collection(DB_SLIPS).doc(slipRefStr).get();
@@ -935,7 +976,6 @@ k-plus𓈒   ཾ     ݂     𓈒
             return;
           }
 
-          // พยายามแกะยอดเงินจากมาตรฐาน PromptPay Mini-QR
           let amount = 0;
           try {
             const matchAmt = qrPayload.match(/54\d{2}(\d+)/);
@@ -951,7 +991,6 @@ k-plus𓈒   ཾ     ݂     𓈒
 
           if (!amount || isNaN(amount) || amount <= 0) return alert('ยอดเงินไม่ถูกต้อง');
 
-          // ทำ Transaction เติมเงินและมาร์กสลิป
           try {
             await db.runTransaction(async t => {
               const uRef = db.collection(DB_USERS).doc(currentUser.uid);
