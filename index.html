@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Mitr:wght@300;400;500;600&family=Quicksand:wght@500;600;700&display=swap" rel="stylesheet">
 
-  <!-- Firebase SDK (ใช้เฉพาะ Firestore ตัดปัญหา Auth Configuration ออก 100%) -->
+  <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
   <!-- ตัวอ่าน QR Code สำหรับสลิปโอนเงิน -->
@@ -293,6 +293,7 @@
       padding: 0 10px;
     }
 
+    /* ปุ่ม LINE โทนชมพูพาสเทลเหลือบฟ้า */
     .line-oa-btn {
       display: flex;
       align-items: center;
@@ -312,7 +313,7 @@
     }
     .line-oa-btn:active { transform: scale(0.97); }
 
-    /* หน้า 2: ตารางกล่องแอพพรีเมียม */
+    /* หน้า 2: ตารางกล่องแอพพรีเมียม (บรรทัดละ 2 กล่อง) */
     .apps-grid {
       display: grid;
       grid-template-columns: repeat(2, 1fr);
@@ -566,13 +567,11 @@
         <h2 style="font-size:16px; font-weight:700; color:var(--deep-pink); text-align:center; margin-bottom:14px;">
           ✨ เลือกแอพพรีเมี่ยมที่ต้องการ ✨
         </h2>
-        <div class="apps-grid" id="appsGrid">
-          <!-- เรนเดอร์กล่องแอพจาก Firebase -->
-        </div>
+        <div class="apps-grid" id="appsGrid"></div>
       </div>
     </div>
 
-    <!-- 3. แท็บ payment (เติมเงิน) -->
+    <!-- 3. แท็บ payment (เติมเงิน & แนบสลิป) -->
     <div class="tab-view" id="tab-topup">
       <div class="glass-card">
         <h2 style="font-size:16px; font-weight:700; color:var(--deep-pink); text-align:center; margin-bottom:12px;">
@@ -673,7 +672,7 @@ k-plus𓈒   ཾ     ݂     𓈒
     </div>
   </div>
 
-  <!-- Modal 3: กู้คืนรหัสผ่านตรงผ่าน Firestore (ไม่ต้องผ่าน Firebase Auth) -->
+  <!-- Modal 3: รีเซ็ตรหัสผ่านตรงผ่าน Firestore -->
   <div class="app-modal" id="forgotModal">
     <div class="app-modal-content">
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
@@ -732,7 +731,7 @@ k-plus𓈒   ཾ     ݂     𓈒
     let selectedPlanIndex = -1;
     let userUnsub = null;
 
-    // ระบบเพลง
+    // เพลง
     const music = document.getElementById('bgMusic');
     function toggleMusic() {
       if (music.paused) music.play().catch(() => {});
@@ -750,7 +749,6 @@ k-plus𓈒   ཾ     ݂     𓈒
       document.getElementById('drawerOverlay').classList.toggle('open', open);
     }
 
-    // ฟังก์ชันสลับแท็บ
     function switchNavTab(tabName) {
       document.querySelectorAll('.tab-view').forEach(el => el.classList.remove('active'));
       document.querySelectorAll('.nav-pill-btn').forEach(b => b.classList.remove('active'));
@@ -767,7 +765,6 @@ k-plus𓈒   ཾ     ݂     𓈒
       toggleDrawer(false);
     }
 
-    // จัดการหน้าต่าง Login / Register / Forgot
     function openLoginModal() { document.getElementById('loginModal').classList.add('open'); toggleDrawer(false); }
     function closeLoginModal() { document.getElementById('loginModal').classList.remove('open'); }
 
@@ -780,24 +777,16 @@ k-plus𓈒   ཾ     ݂     𓈒
     function switchToRegister() { closeLoginModal(); openRegisterModal(); }
     function switchToLogin() { closeRegisterModal(); openLoginModal(); }
 
-    // 1. สมัครสมาชิก (บันทึก Username + Email + Password ลง Firestore ตรงๆ)
+    // 1. สมัครสมาชิก
     async function handleUserRegister() {
       const username = document.getElementById('regUsername').value.trim();
       const email = document.getElementById('regEmail').value.trim().toLowerCase();
       const pass = document.getElementById('regPassword').value.trim();
 
-      if (!username || !email || !pass) {
-        return alert('กรุณากรอกข้อมูลให้ครบทุกช่องนะคะ ♡');
-      }
-      if (username.length < 3) {
-        return alert('ชื่อผู้ใช้ต้องมีความยาวอย่างน้อย 3 ตัวอักษรค่ะ');
-      }
-      if (pass.length < 4) {
-        return alert('รหัสผ่านต้องมีอย่างน้อย 4 ตัวอักษรค่ะ');
-      }
-      if (!email.includes('@')) {
-        return alert('กรุณากรอกรูปแบบอีเมลให้ถูกต้องนะคะ');
-      }
+      if (!username || !email || !pass) return alert('กรุณากรอกข้อมูลให้ครบทุกช่องนะคะ ♡');
+      if (username.length < 3) return alert('ชื่อผู้ใช้ต้องมีความยาวอย่างน้อย 3 ตัวอักษรค่ะ');
+      if (pass.length < 4) return alert('รหัสผ่านต้องมีอย่างน้อย 4 ตัวอักษรค่ะ');
+      if (!email.includes('@')) return alert('กรุณากรอกรูปแบบอีเมลให้ถูกต้องนะคะ');
 
       const userDocRef = db.collection(DB_USERS).doc(username);
 
@@ -807,7 +796,6 @@ k-plus𓈒   ཾ     ݂     𓈒
           return alert('ชื่อผู้ใช้นี้มีคนใช้แล้ว กรุณาตั้งชื่ออื่นนะคะ ♡');
         }
 
-        // บันทึกลง Firestore
         await userDocRef.set({
           username: username,
           email: email,
@@ -827,14 +815,12 @@ k-plus𓈒   ཾ     ݂     𓈒
       }
     }
 
-    // 2. เข้าสู่ระบบ (ใส่ Username + Password)
+    // 2. เข้าสู่ระบบ
     async function handleUserLogin() {
       const username = document.getElementById('loginUsername').value.trim();
       const pass = document.getElementById('loginPassword').value.trim();
 
-      if (!username || !pass) {
-        return alert('กรุณากรอกชื่อผู้ใช้และรหัสผ่านนะคะ ♡');
-      }
+      if (!username || !pass) return alert('กรุณากรอกชื่อผู้ใช้และรหัสผ่านนะคะ ♡');
 
       try {
         const docSnap = await db.collection(DB_USERS).doc(username).get();
@@ -858,35 +844,27 @@ k-plus𓈒   ཾ     ݂     𓈒
       }
     }
 
-    // 3. กู้คืนรหัสผ่านตรงผ่าน Firestore (ไม่ต้องผ่าน Firebase Auth จึงไม่เกิด error config)
+    // 3. รีเซ็ตรหัสผ่านตรงผ่าน Firestore
     async function handleDirectResetPassword() {
       const username = document.getElementById('forgotUsername').value.trim();
       const email = document.getElementById('forgotEmail').value.trim().toLowerCase();
       const newPass = document.getElementById('forgotNewPass').value.trim();
 
-      if (!username || !email || !newPass) {
-        return alert('กรุณากรอกข้อมูลให้ครบถ้วนทุกช่องนะคะ ♡');
-      }
-      if (newPass.length < 4) {
-        return alert('รหัสผ่านใหม่ต้องมีความยาวอย่างน้อย 4 ตัวอักษรค่ะ');
-      }
+      if (!username || !email || !newPass) return alert('กรุณากรอกข้อมูลให้ครบถ้วนทุกช่องนะคะ ♡');
+      if (newPass.length < 4) return alert('รหัสผ่านใหม่ต้องมีความยาวอย่างน้อย 4 ตัวอักษรค่ะ');
 
       try {
         const userDocRef = db.collection(DB_USERS).doc(username);
         const docSnap = await userDocRef.get();
 
-        if (!docSnap.exists) {
-          return alert('ไม่พบชื่อผู้ใช้นี้ในระบบค่ะ');
-        }
+        if (!docSnap.exists) return alert('ไม่พบชื่อผู้ใช้นี้ในระบบค่ะ');
 
         const data = docSnap.data();
         if (data.email.toLowerCase() !== email) {
           return alert('อีเมลไม่ตรงกับที่ลงทะเบียนไว้กับชื่อผู้ใช้นี้ค่ะ กรุณาตรวจสอบใหม่อีกครั้งนะคะ');
         }
 
-        // อัปเดตรหัสผ่านใหม่ลง Firestore ทันที
         await userDocRef.update({ password: newPass });
-
         alert('เปลี่ยนรหัสผ่านใหม่เรียบร้อยแล้วค่ะ! กรุณาเข้าสู่ระบบด้วยรหัสผ่านใหม่ได้ทันที ♡');
         closeForgotModal();
         openLoginModal();
@@ -895,7 +873,7 @@ k-plus𓈒   ཾ     ݂     𓈒
       }
     }
 
-    // สถานะผู้ใช้งาน
+    // ตรวจสอบเซสชันผู้ใช้
     function checkStoredUser() {
       const savedUserStr = localStorage.getItem('luvselris_active_user');
       if (savedUserStr) {
@@ -989,7 +967,7 @@ k-plus𓈒   ཾ     ݂     𓈒
       });
     });
 
-    // เปิด Modal ซื้อแอพ
+    // Modal แอพ
     function openAppModal(app) {
       activeAppModalData = app;
       selectedPlanIndex = -1;
@@ -1092,7 +1070,7 @@ k-plus𓈒   ཾ     ݂     𓈒
       }
     }
 
-    // โหลดประวัติสั่งซื้อ
+    // ประวัติการสั่งซื้อ
     function loadOrderHistory(username) {
       db.collection(DB_ORDERS).where("username", "==", username).orderBy("createdAt", "desc").onSnapshot(snap => {
         const box = document.getElementById('orderHistoryList');
@@ -1118,7 +1096,7 @@ k-plus𓈒   ཾ     ݂     𓈒
       });
     }
 
-    // ถอดรหัสยอดเงินอัตโนมัติจาก EMVCo PromptPay QR Code
+    // ระบบแกะข้อมูลยอดเงินจาก PromptPay Mini-QR
     function parseSlipAmountFromQR(qrData) {
       if (!qrData || typeof qrData !== 'string') return null;
 
@@ -1153,7 +1131,7 @@ k-plus𓈒   ཾ     ݂     𓈒
       return null;
     }
 
-    // ระบบสแกนสลิปโอนเงิน & ปรับยอดเงินเข้าทันที 100%
+    // ระบบสแกนสลิปอัจฉริยะ (ถ้าอ่านยอดเงินจาก QR ไม่ได้ จะเปิดช่องให้พิมพ์ระบุทันที ไม่ Error เด้งทิ้ง)
     async function handleSlipUpload(event) {
       if (!currentUser) {
         alert('กรุณาเข้าสู่ระบบก่อนแนบสลิปเติมเงินนะคะ ♡');
@@ -1184,17 +1162,24 @@ k-plus𓈒   ཾ     ݂     𓈒
           const qrPayload = code.data;
           const slipRefHash = btoa(encodeURIComponent(qrPayload)).slice(0, 36);
 
+          // ตรวจสอบสลิปซ้ำในระบบ
           const slipDoc = await db.collection(DB_SLIPS).doc(slipRefHash).get();
           if (slipDoc.exists) {
             alert('สลิปนี้เคยใช้งานเติมเงินไปแล้ว ไม่สามารถใช้ซ้ำได้ค่ะ ❌');
             return;
           }
 
-          const amount = parseSlipAmountFromQR(qrPayload);
+          // พยายามอ่านยอดเงินอัตโนมัติ
+          let amount = parseSlipAmountFromQR(qrPayload);
+
+          // หากสลิปธนาคารนั้นไม่มีตัวเลขยอดเงินฝังใน QR ให้เด้งถามยอดเงินทันที ไม่บล็อก
+          if (!amount || isNaN(amount) || amount <= 0) {
+            const promptAmt = prompt("ตรวจพบ QR สลิปถูกต้องเรียบร้อยค่ะ! กรุณากรอกยอดเงินที่โอนตามสลิป (บาท):");
+            amount = parseFloat(promptAmt);
+          }
 
           if (!amount || isNaN(amount) || amount <= 0) {
-            alert('ตรวจพบ QR สลิปถูกต้อง แต่ไม่สามารถอ่านยอดเงินอัตโนมัติจากไฟล์นี้ได้ กรุณาใช้ภาพสลิปต้นฉบับที่ไม่ผ่านการครอปตัดนะคะ');
-            return;
+            return alert('ยอดเงินไม่ถูกต้อง ยกเลิกการทำรายการค่ะ');
           }
 
           try {
