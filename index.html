@@ -293,7 +293,6 @@
       padding: 0 10px;
     }
 
-    /* ปุ่ม LINE โทนชมพูพาสเทลเหลือบฟ้า */
     .line-oa-btn {
       display: flex;
       align-items: center;
@@ -561,7 +560,7 @@
       </div>
     </div>
 
-    <!-- 2. แท็บ apppremium (Grid 2 กล่องต่อบรรทัด) -->
+    <!-- 2. แท็บ apppremium -->
     <div class="tab-view" id="tab-apps">
       <div class="glass-card" style="padding-bottom:20px;">
         <h2 style="font-size:16px; font-weight:700; color:var(--deep-pink); text-align:center; margin-bottom:14px;">
@@ -619,7 +618,7 @@ k-plus𓈒   ཾ     ݂     𓈒
         <!-- แนบสลิปตรวจอัตโนมัติ -->
         <div class="slip-uploader-box" onclick="document.getElementById('slipFileInput').click()">
           <span style="font-size:28px;">🧾</span>
-          <div style="font-weight:700; color:var(--deep-pink); margin-top:4px;">แนบสลิปโอนเงิน (ตรวจยอดเงินอัตโนมัติ 100%)</div>
+          <div style="font-weight:700; color:var(--deep-pink); margin-top:4px;">แนบสลิปโอนเงิน (ตรวจยอดเงินอัตโนมัติ)</div>
           <div style="font-size:12px; color:var(--text-muted); margin-top:2px;">ระบบจะสแกน QR Code อ่านยอดเงินที่โอนจริง และเติมเข้าสู่กระเป๋าของคุณทันที</div>
           <input type="file" id="slipFileInput" accept="image/*" style="display:none;" onchange="handleSlipUpload(event)">
         </div>
@@ -730,8 +729,9 @@ k-plus𓈒   ཾ     ݂     𓈒
     let activeAppModalData = null;
     let selectedPlanIndex = -1;
     let userUnsub = null;
+    let orderUnsub = null;
 
-    // เพลง
+    // ระบบเพลง
     const music = document.getElementById('bgMusic');
     function toggleMusic() {
       if (music.paused) music.play().catch(() => {});
@@ -762,6 +762,11 @@ k-plus𓈒   ཾ     ݂     𓈒
       if (targetPill) targetPill.classList.add('active');
       if (targetDrawer) targetDrawer.classList.add('active');
 
+      // ถ้าสลับมาหน้าประวัติการสั่งซื้อ และมีผู้ใช้ล็อกอินอยู่ ให้ดึงข้อมูลทันที
+      if (tabName === 'history' && currentUser) {
+        loadOrderHistory(currentUser.username);
+      }
+
       toggleDrawer(false);
     }
 
@@ -777,7 +782,7 @@ k-plus𓈒   ཾ     ݂     𓈒
     function switchToRegister() { closeLoginModal(); openRegisterModal(); }
     function switchToLogin() { closeRegisterModal(); openLoginModal(); }
 
-    // 1. สมัครสมาชิก
+    // สมัครสมาชิก
     async function handleUserRegister() {
       const username = document.getElementById('regUsername').value.trim();
       const email = document.getElementById('regEmail').value.trim().toLowerCase();
@@ -815,7 +820,7 @@ k-plus𓈒   ཾ     ݂     𓈒
       }
     }
 
-    // 2. เข้าสู่ระบบ
+    // เข้าสู่ระบบ
     async function handleUserLogin() {
       const username = document.getElementById('loginUsername').value.trim();
       const pass = document.getElementById('loginPassword').value.trim();
@@ -844,7 +849,7 @@ k-plus𓈒   ཾ     ݂     𓈒
       }
     }
 
-    // 3. รีเซ็ตรหัสผ่านตรงผ่าน Firestore
+    // รีเซ็ตรหัสผ่านตรงผ่าน Firestore
     async function handleDirectResetPassword() {
       const username = document.getElementById('forgotUsername').value.trim();
       const email = document.getElementById('forgotEmail').value.trim().toLowerCase();
@@ -873,7 +878,6 @@ k-plus𓈒   ཾ     ݂     𓈒
       }
     }
 
-    // ตรวจสอบเซสชันผู้ใช้
     function checkStoredUser() {
       const savedUserStr = localStorage.getItem('luvselris_active_user');
       if (savedUserStr) {
@@ -912,6 +916,7 @@ k-plus𓈒   ཾ     ݂     𓈒
       currentUser = null;
       userData = { balance: 0 };
       if (userUnsub) userUnsub();
+      if (orderUnsub) orderUnsub();
       document.getElementById('drawerUserUsername').textContent = 'ยังไม่ได้เข้าสู่ระบบ';
       document.getElementById('drawerUserEmail').textContent = '';
       document.getElementById('drawerUserBalance').textContent = '฿0.00';
@@ -967,7 +972,6 @@ k-plus𓈒   ཾ     ݂     𓈒
       });
     });
 
-    // Modal แอพ
     function openAppModal(app) {
       activeAppModalData = app;
       selectedPlanIndex = -1;
@@ -1070,17 +1074,35 @@ k-plus𓈒   ཾ     ݂     𓈒
       }
     }
 
-    // ประวัติการสั่งซื้อ
+    // โหลดประวัติสั่งซื้อ (ปรับแต่งแก้ปัญหา Composite Index โดยเรียงลำดับเวลาบน Client)
     function loadOrderHistory(username) {
-      db.collection(DB_ORDERS).where("username", "==", username).orderBy("createdAt", "desc").onSnapshot(snap => {
-        const box = document.getElementById('orderHistoryList');
+      if (orderUnsub) orderUnsub();
+      
+      const box = document.getElementById('orderHistoryList');
+      if (!username) {
+        box.innerHTML = '<p style="text-align:center; color:var(--text-muted); font-size:13px; padding:20px;">กรุณาเข้าสู่ระบบก่อนสั่งซื้อนะคะ ♡</p>';
+        return;
+      }
+
+      // ดึงเฉพาะ query username เพื่อไม่ให้ติด index error
+      orderUnsub = db.collection(DB_ORDERS).where("username", "==", username).onSnapshot(snap => {
         if (snap.empty) {
           box.innerHTML = '<p style="text-align:center; color:var(--text-muted); font-size:13px; padding:20px;">ยังไม่มีประวัติการสั่งซื้อ อุดหนุนกันก่อนน้าา ♡</p>';
           return;
         }
+
+        const orders = [];
+        snap.forEach(doc => orders.push({ id: doc.id, ...doc.data() }));
+
+        // เรียงลำดับเวลาจากใหม่ไปเก่าด้วย JavaScript
+        orders.sort((a, b) => {
+          const tA = a.createdAt ? (a.createdAt.toMillis ? a.createdAt.toMillis() : a.createdAt.seconds * 1000) : 0;
+          const tB = b.createdAt ? (b.createdAt.toMillis ? b.createdAt.toMillis() : b.createdAt.seconds * 1000) : 0;
+          return tB - tA;
+        });
+
         let html = '';
-        snap.forEach(doc => {
-          const d = doc.data();
+        orders.forEach(d => {
           html += `
             <div class="order-history-card">
               <div class="order-header-row">
@@ -1093,10 +1115,12 @@ k-plus𓈒   ཾ     ݂     𓈒
           `;
         });
         box.innerHTML = html;
+      }, err => {
+        console.error("Order load error:", err);
       });
     }
 
-    // ระบบแกะข้อมูลยอดเงินจาก PromptPay Mini-QR
+    // ถอดรหัสยอดเงินจาก PromptPay Mini-QR
     function parseSlipAmountFromQR(qrData) {
       if (!qrData || typeof qrData !== 'string') return null;
 
@@ -1131,7 +1155,7 @@ k-plus𓈒   ཾ     ݂     𓈒
       return null;
     }
 
-    // ระบบสแกนสลิปอัจฉริยะ (ถ้าอ่านยอดเงินจาก QR ไม่ได้ จะเปิดช่องให้พิมพ์ระบุทันที ไม่ Error เด้งทิ้ง)
+    // ระบบสแกนสลิปอัจฉริยะ (อ่านยอดเงินออโต้ หรือให้ระบุยอดเงินทันที ไม่เด้งปฏิเสธสลิป)
     async function handleSlipUpload(event) {
       if (!currentUser) {
         alert('กรุณาเข้าสู่ระบบก่อนแนบสลิปเติมเงินนะคะ ♡');
@@ -1162,19 +1186,18 @@ k-plus𓈒   ཾ     ݂     𓈒
           const qrPayload = code.data;
           const slipRefHash = btoa(encodeURIComponent(qrPayload)).slice(0, 36);
 
-          // ตรวจสอบสลิปซ้ำในระบบ
+          // ตรวจสอบสลิปซ้ำ
           const slipDoc = await db.collection(DB_SLIPS).doc(slipRefHash).get();
           if (slipDoc.exists) {
             alert('สลิปนี้เคยใช้งานเติมเงินไปแล้ว ไม่สามารถใช้ซ้ำได้ค่ะ ❌');
             return;
           }
 
-          // พยายามอ่านยอดเงินอัตโนมัติ
           let amount = parseSlipAmountFromQR(qrPayload);
 
-          // หากสลิปธนาคารนั้นไม่มีตัวเลขยอดเงินฝังใน QR ให้เด้งถามยอดเงินทันที ไม่บล็อก
+          // หากสลิปไม่มีตัวเลขยอดเงินฝังใน QR ให้เด้งถามยอดเงินทันทีแทนการแจ้ง Error
           if (!amount || isNaN(amount) || amount <= 0) {
-            const promptAmt = prompt("ตรวจพบ QR สลิปถูกต้องเรียบร้อยค่ะ! กรุณากรอกยอดเงินที่โอนตามสลิป (บาท):");
+            const promptAmt = prompt("ตรวจพบสลิปถูกต้องเรียบร้อยค่ะ! กรุณาระบุยอดเงินที่โอนตามสลิป (บาท):");
             amount = parseFloat(promptAmt);
           }
 
